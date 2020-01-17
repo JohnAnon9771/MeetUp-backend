@@ -22,6 +22,11 @@ class User extends Model {
     return this;
   }
 
+  // for the listing to come with the meetups
+  static associate(models) {
+    this.hasMany(models.Meetup, { foreignKey: 'user_id', as: 'meetups' });
+  }
+
   checkPassword(password) {
     return bcrypt.compare(password, this.password_hash);
   }
