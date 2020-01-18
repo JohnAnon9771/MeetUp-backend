@@ -40,7 +40,12 @@ class MeetupController {
       return res.status(400).json({ error: 'Validations Fails' });
     }
 
-    const meetups = await Meetup.findByPk(req.params.id);
+    const meetups = await Meetup.findOne({
+      where: {
+        id: req.params.id,
+        user_id: req.userId
+      }
+    });
     if (!meetups) {
       return res.status(400).json({ error: 'Meetup not exist' });
     }
@@ -52,6 +57,31 @@ class MeetupController {
     }
 
     const response = await meetups.update(req.body);
+
+    return res.json(response);
+  }
+
+  async destroy(req, res) {
+    const schema = Yup.object().shape({
+      title: Yup.string(),
+      description: Yup.string(),
+      locale: Yup.string(),
+      date: Yup.date()
+    });
+    if (!(await schema.isValid(req.body))) {
+      return res.status(400).json({ error: 'Validation Fails' });
+    }
+
+    const meetups = await Meetup.findOne({
+      where: {
+        id: req.params.id,
+        user_id: req.userId
+      }
+    });
+    if (meetups.past) {
+      return res.status(400).json({ error: "Can't delet Meetup closed" });
+    }
+    const response = await meetups.destroy();
 
     return res.json(response);
   }
