@@ -25,6 +25,11 @@ class User extends Model {
   // for the listing to come with the meetups
   static associate(models) {
     this.hasMany(models.Meetup, { foreignKey: 'user_id', as: 'meetups' });
+    this.belongsToMany(models.Meetup, {
+      foreignKey: 'user_id',
+      through: 'user_meetups',
+      as: 'subscriptions'
+    });
   }
 
   checkPassword(password) {
