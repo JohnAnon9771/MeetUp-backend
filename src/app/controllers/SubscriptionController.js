@@ -2,6 +2,8 @@ import * as Yup from 'yup';
 import Meetup from '../models/Meetup';
 import User from '../models/User';
 
+import Mail from '../../lib/Mail';
+
 class SubscriptionController {
   async store(req, res) {
     const schema = Yup.object().shape({
@@ -12,7 +14,12 @@ class SubscriptionController {
       return res.status(400).json({ error: 'Validations Fails' });
     }
 
-    const meetup = await Meetup.findByPk(req.params.id);
+    const meetup = await Meetup.findByPk(req.params.id, {
+      include: {
+        association: 'user'
+      }
+    });
+
     if (meetup.user_id === req.userId) {
       return res
         .status(400)
@@ -32,31 +39,38 @@ class SubscriptionController {
         }
       }
     });
-    // desctruture user for get meetup_id
-    const {
-      subscriptions: [
-        {
-          date,
-          user_meetups: { meetup_id }
-        }
-      ]
-    } = user;
 
     if (!user) {
       return res.status(401).json({ error: 'User not is logaded' });
     }
-    if (meetup_id === meetup.id) {
+
+    if (
+      user.subscriptions &&
+      user.subscriptions.user_meetups &&
+      user.subscriptions.user_meetups.meetup_id === meetup.id
+    ) {
       return res
         .status(400)
         .json({ error: 'User cannot register twice for the same meetup' });
     }
-    if (date === meetup.date) {
+    if (user.subscriptions && user.subscriptions.date === meetup.date) {
       return res.status(400).json({
         error: 'User cannot sign up for two meetups that take place onsame time'
       });
     }
+
     // methods for N-N: setModel, getModel, addModel, removeModel....
     await meetup.addUser(user);
+
+    await Mail.sendMail({
+      to: `${meetup.user.name} <${meetup.user.email}>`,
+      subject: 'Uma nova inscrição',
+      template: 'subscription',
+      context: {
+        user_meetup: meetup.user.name,
+        user: user.name
+      }
+    });
 
     return res.json(user);
   }
