@@ -2,7 +2,8 @@ import * as Yup from 'yup';
 import Meetup from '../models/Meetup';
 import User from '../models/User';
 
-import Mail from '../../lib/Mail';
+import SubscriptionMail from '../jobs/SubscriptionMail';
+import Queue from '../../lib/Queue';
 
 class SubscriptionController {
   async store(req, res) {
@@ -44,35 +45,34 @@ class SubscriptionController {
       return res.status(401).json({ error: 'User not is logaded' });
     }
 
-    if (
-      user.subscriptions &&
-      user.subscriptions.user_meetups &&
-      user.subscriptions.user_meetups.meetup_id === meetup.id
-    ) {
-      return res
-        .status(400)
-        .json({ error: 'User cannot register twice for the same meetup' });
-    }
-    if (user.subscriptions && user.subscriptions.date === meetup.date) {
-      return res.status(400).json({
-        error: 'User cannot sign up for two meetups that take place onsame time'
-      });
+    if (user.subscriptions.length) {
+      const {
+        subscriptions: [{ user_meetups, date }]
+      } = user;
+
+      if (user_meetups.meetup_id === meetup.id) {
+        return res
+          .status(400)
+          .json({ error: 'User cannot register twice for the same meetup' });
+      }
+
+      if (date === meetup.date) {
+        return res.status(400).json({
+          error:
+            'User cannot sign up for two meetups that take place onsame time'
+        });
+      }
     }
 
     // methods for N-N: setModel, getModel, addModel, removeModel....
     await meetup.addUser(user);
 
-    await Mail.sendMail({
-      to: `${meetup.user.name} <${meetup.user.email}>`,
-      subject: 'Uma nova inscrição',
-      template: 'subscription',
-      context: {
-        user_meetup: meetup.user.name,
-        user: user.name
-      }
+    await Queue.add(SubscriptionMail.key, {
+      meetup,
+      user
     });
 
-    return res.json(user);
+    return res.json();
   }
 }
 

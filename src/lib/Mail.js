@@ -8,7 +8,7 @@ class Mail {
   constructor() {
     const { auth, ...mail } = mailConfig;
     this.transporter = nodemailer.createTransport({
-      mail,
+      ...mail,
       auth: auth.user ? auth : null
     });
 
