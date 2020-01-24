@@ -20,11 +20,12 @@ routes.post('/session', SessionController.store);
 routes.use(userAuthenticate);
 
 routes.put('/users', UserController.update);
+routes.get('/user/meetups', UserController.index);
 
 routes.post('/meetups', MeetupController.store);
 routes.put('/meetups/:id', MeetupController.update);
-routes.get('/meetups', MeetupController.index);
 routes.delete('/meetups/:id', MeetupController.destroy);
+routes.get('/meetups', MeetupController.index);
 
 routes.post('/subscription/:id', SubscriptionController.store);
 
