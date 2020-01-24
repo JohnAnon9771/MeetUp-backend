@@ -6,6 +6,22 @@ import SubscriptionMail from '../jobs/SubscriptionMail';
 import Queue from '../../lib/Queue';
 
 class SubscriptionController {
+  async index(req, res) {
+    const user = await User.findByPk(req.userId, {
+      where: {
+        subscriptions: {
+          paste: false,
+          order: ['date', 'desc']
+        }
+      },
+      include: {
+        association: 'subscriptions'
+      }
+    });
+
+    return res.json(user.subscriptions);
+  }
+
   async store(req, res) {
     const schema = Yup.object().shape({
       user_id: Yup.number(),
